@@ -30,4 +30,11 @@ class Appointment(Base):
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
 
+def get_db():
+    db = SessionLocal()  # Create a new database session
+    try:
+        yield db  # Yield the session to be used in API endpoints
+    finally:
+        db.close()  # Ensure the session is closed after use
+
 init_db()  # Initialize the database when this module is imported
