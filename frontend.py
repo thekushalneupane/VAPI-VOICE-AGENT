@@ -4,7 +4,8 @@ import datetime as dt
 import pandas as pd
 
 # --- Config ---
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://stalling-dramatize-overhead.ngrok-free.dev"  # Update with your actual backend URL
+# API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
     page_title="Delhi Eye Care Hospital",
