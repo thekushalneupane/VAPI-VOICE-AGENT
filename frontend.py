@@ -150,7 +150,7 @@ st.markdown("""
 # --- Sidebar Navigation ---
 with st.sidebar:
     st.markdown("### Navigation")
-    page = st.radio("", ["📋 All Appointments", "➕ Book Appointment", "❌ Cancel Appointment"], label_visibility="collapsed")
+    page = st.radio("", ["📋 All Appointments", "🔍 List by Patient", "➕ Book Appointment", "❌ Cancel Appointment"], label_visibility="collapsed")
     st.markdown("---")
     st.markdown("<div style='color:#8899aa; font-size:0.8rem;'>Vikram Voice Agent Backend<br>Delhi Eye Care Hospital</div>", unsafe_allow_html=True)
 
@@ -206,23 +206,57 @@ if page == "📋 All Appointments":
     if not filtered:
         st.markdown('<div class="card">No appointments found.</div>', unsafe_allow_html=True)
     else:
+        rows = []
         for a in filtered:
-            card_class = "card-canceled" if a.canceled else "card-active"
-            badge_class = "badge-canceled" if a.canceled else "badge-active"
-            badge_text = "Canceled" if a.canceled else "Active"
-            time_str = a.start_time.strftime("%d %b %Y, %I:%M %p") if a.start_time else "N/A"
-            st.markdown(f"""
-            <div class="card {card_class}">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <strong style="font-size:1rem;">{a.patient_name}</strong>
-                        <span style="color:#8899aa; margin-left:10px; font-size:0.85rem;">{a.reason or 'N/A'}</span>
-                    </div>
-                    <span class="badge {badge_class}">{badge_text}</span>
-                </div>
-                <div style="color:#8899aa; font-size:0.82rem; margin-top:6px;">🕐 {time_str} &nbsp;|&nbsp; ID: #{a.id}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            rows.append({
+                "ID": a.id,
+                "Patient Name": a.patient_name,
+                "Reason": a.reason or "N/A",
+                "Appointment Time": a.start_time.strftime("%d %b %Y, %I:%M %p") if a.start_time else "N/A",
+                "Status": "❌ Canceled" if a.canceled else "✅ Active",
+                "Booked At": a.created_at.strftime("%d %b %Y, %I:%M %p") if a.created_at else "N/A",
+            })
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+# --- Page: List by Patient ---
+elif page == "🔍 List by Patient":
+    st.markdown("### Search Appointments by Patient")
+
+    with st.form("search_form"):
+        search_name = st.text_input("Patient Name")
+        submitted = st.form_submit_button("Search")
+
+    if submitted:
+        if not search_name.strip():
+            st.markdown('<div class="error-msg">Please enter a patient name.</div>', unsafe_allow_html=True)
+        else:
+            try:
+                res = requests.get(f"{API_URL}/list_appointment/", params={"patient_name": search_name.strip()})
+                if res.status_code == 200:
+                    data = res.json()
+                    if not data:
+                        st.markdown('<div class="card">No appointments found for this patient.</div>', unsafe_allow_html=True)
+                    else:
+                        # Build a clean dataframe for table display
+                        rows = []
+                        for a in data:
+                            rows.append({
+                                "ID": a["id"],
+                                "Patient Name": a["patient_name"],
+                                "Reason": a["reason"] or "N/A",
+                                "Appointment Time": dt.datetime.fromisoformat(a["start_time"]).strftime("%d %b %Y, %I:%M %p"),
+                                "Status": "❌ Canceled" if a["canceled"] else "✅ Active",
+                                "Booked At": dt.datetime.fromisoformat(a["created_at"]).strftime("%d %b %Y, %I:%M %p"),
+                            })
+                        df = pd.DataFrame(rows)
+                        st.markdown(f"<p style='color:#8899aa;'>Found <strong style='color:#7eb8f7;'>{len(rows)}</strong> appointment(s)</p>", unsafe_allow_html=True)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                else:
+                    st.markdown(f'<div class="error-msg">Error: {res.text}</div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.markdown(f'<div class="error-msg">Could not reach backend: {e}</div>', unsafe_allow_html=True)
 
 
 # --- Page: Book Appointment ---
