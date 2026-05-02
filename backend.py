@@ -57,7 +57,7 @@ def schedule_appointment(request: AppointmentRequest, db: Session = Depends(get_
 # Cancel Appointment
 @app.post("/cancel_appointment/")
 def cancel_appointment(request: CancelAppointmentRequest, db: Session = Depends(get_db)):
-    start_dt = dt.datetime.combine(request.start_time.date(), dt.time(0, 0))  # fixed
+    start_dt = dt.datetime.combine(request.start_time.date(), dt.time(0, 0))
     end_dt = start_dt + dt.timedelta(days=1)
 
     result = db.execute(
@@ -80,7 +80,7 @@ def cancel_appointment(request: CancelAppointmentRequest, db: Session = Depends(
 
     return CancelAppointmentResponse(canceled_count=len(appointments))
 
-# List Appointments
+# List Appointments by Patient
 @app.get("/list_appointment/")
 def list_appointment(patient_name: str, db: Session = Depends(get_db)):
     result = db.execute(
@@ -90,19 +90,32 @@ def list_appointment(patient_name: str, db: Session = Depends(get_db)):
 
     appointments = result.scalars().all()
 
-    booked_appointments = []
-    for appointment in appointments:
-        booked_appointments.append(AppointmentResponse(
-            id=appointment.id,
-            patient_name=appointment.patient_name,
-            reason=appointment.reason,
-            start_time=appointment.start_time,
-            canceled=appointment.canceled,
-            created_at=appointment.created_at
-        ))
+    return [AppointmentResponse(
+        id=a.id,
+        patient_name=a.patient_name,
+        reason=a.reason,
+        start_time=a.start_time,
+        canceled=a.canceled,
+        created_at=a.created_at
+    ) for a in appointments]
 
-    return booked_appointments
+# All Appointments (for dashboard)
+@app.get("/all_appointments/")
+def all_appointments(db: Session = Depends(get_db)):
+    result = db.execute(
+        select(Appointment).order_by(Appointment.start_time.desc())
+    )
+    appointments = result.scalars().all()
+
+    return [AppointmentResponse(
+        id=a.id,
+        patient_name=a.patient_name,
+        reason=a.reason,
+        start_time=a.start_time,
+        canceled=a.canceled,
+        created_at=a.created_at
+    ) for a in appointments]
 
 import uvicorn
 if __name__ == "__main__":
-    uvicorn.run("backend:app", host="127.0.0.1", port=8000)
+    uvicorn.run("backend:app", host="0.0.0.0", port=8000)

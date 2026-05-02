@@ -4,8 +4,7 @@ import datetime as dt
 import pandas as pd
 
 # --- Config ---
-API_URL = "https://stalling-dramatize-overhead.ngrok-free.dev"  # Update with your actual backend URL
-# API_URL = "http://127.0.0.1:8000"
+API_URL = "https://stalling-dramatize-overhead.ngrok-free.dev"  # Update with your Railway URL after deployment
 
 st.set_page_config(
     page_title="Delhi Eye Care Hospital",
@@ -65,26 +64,6 @@ st.markdown("""
         padding: 1.2rem 1.5rem;
         margin-bottom: 0.8rem;
     }
-
-    .card-active {
-        border-left: 4px solid #1a5fd4;
-    }
-
-    .card-canceled {
-        border-left: 4px solid #ef4444;
-        opacity: 0.6;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-
-    .badge-active { background: #1a3a6e; color: #7eb8f7; }
-    .badge-canceled { background: #3a1a1a; color: #f87171; }
 
     .stat-box {
         background: #111827;
@@ -156,18 +135,16 @@ with st.sidebar:
     st.markdown("<div style='color:#8899aa; font-size:0.8rem;'>Vikram Voice Agent Backend<br>Delhi Eye Care Hospital</div>", unsafe_allow_html=True)
 
 
-# --- Helper: Fetch All Appointments ---
+# --- Helper: Fetch All Appointments from API ---
 def fetch_all_appointments():
     try:
-        # We'll use the list endpoint with a broad search
-        # Since list requires patient_name, we fetch via SQLite directly for dashboard
-        from database import SessionLocal, Appointment
-        db = SessionLocal()
-        appointments = db.query(Appointment).order_by(Appointment.start_time.desc()).all()
-        db.close()
-        return appointments
+        res = requests.get(f"{API_URL}/all_appointments/")
+        if res.status_code == 200:
+            return res.json()
+        st.error(f"Error fetching appointments: {res.text}")
+        return []
     except Exception as e:
-        st.error(f"Could not connect to database: {e}")
+        st.error(f"Could not connect to backend: {e}")
         return []
 
 
@@ -175,11 +152,11 @@ def fetch_all_appointments():
 if page == "📋 All Appointments":
     appointments = fetch_all_appointments()
 
-    # Stats
     total = len(appointments)
-    active = sum(1 for a in appointments if not a.canceled)
-    canceled = sum(1 for a in appointments if a.canceled)
-    today = sum(1 for a in appointments if not a.canceled and a.start_time and a.start_time.date() == dt.date.today())
+    active = sum(1 for a in appointments if not a["canceled"])
+    canceled = sum(1 for a in appointments if a["canceled"])
+    today = sum(1 for a in appointments if not a["canceled"] and
+                dt.datetime.fromisoformat(a["start_time"]).date() == dt.date.today())
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -193,16 +170,15 @@ if page == "📋 All Appointments":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Filter
     filter_opt = st.selectbox("Filter", ["All", "Active Only", "Canceled Only"])
 
     st.markdown("### Appointments")
 
     filtered = appointments
     if filter_opt == "Active Only":
-        filtered = [a for a in appointments if not a.canceled]
+        filtered = [a for a in appointments if not a["canceled"]]
     elif filter_opt == "Canceled Only":
-        filtered = [a for a in appointments if a.canceled]
+        filtered = [a for a in appointments if a["canceled"]]
 
     if not filtered:
         st.markdown('<div class="card">No appointments found.</div>', unsafe_allow_html=True)
@@ -210,12 +186,12 @@ if page == "📋 All Appointments":
         rows = []
         for a in filtered:
             rows.append({
-                "ID": a.id,
-                "Patient Name": a.patient_name,
-                "Reason": a.reason or "N/A",
-                "Appointment Time": a.start_time.strftime("%d %b %Y, %I:%M %p") if a.start_time else "N/A",
-                "Status": "❌ Canceled" if a.canceled else "✅ Active",
-                "Booked At": a.created_at.strftime("%d %b %Y, %I:%M %p") if a.created_at else "N/A",
+                "ID": a["id"],
+                "Patient Name": a["patient_name"],
+                "Reason": a["reason"] or "N/A",
+                "Appointment Time": dt.datetime.fromisoformat(a["start_time"]).strftime("%d %b %Y, %I:%M %p"),
+                "Status": "❌ Canceled" if a["canceled"] else "✅ Active",
+                "Booked At": dt.datetime.fromisoformat(a["created_at"]).strftime("%d %b %Y, %I:%M %p"),
             })
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
@@ -240,7 +216,6 @@ elif page == "🔍 List by Patient":
                     if not data:
                         st.markdown('<div class="card">No appointments found for this patient.</div>', unsafe_allow_html=True)
                     else:
-                        # Build a clean dataframe for table display
                         rows = []
                         for a in data:
                             rows.append({
@@ -284,7 +259,6 @@ elif page == "➕ Book Appointment":
             try:
                 res = requests.post(f"{API_URL}/schedule_appointment/", json=payload)
                 if res.status_code == 200:
-                    data = res.json()
                     st.markdown(f'<div class="success-msg">✅ Appointment booked for <strong>{patient_name}</strong> on {start_time.strftime("%d %b %Y at %I:%M %p")}.</div>', unsafe_allow_html=True)
                 else:
                     st.markdown(f'<div class="error-msg">Error: {res.text}</div>', unsafe_allow_html=True)
