@@ -4,7 +4,8 @@ import datetime as dt
 import pandas as pd
 
 # --- Config ---
-API_URL = "https://stalling-dramatize-overhead.ngrok-free.dev"  # Update with your Railway URL after deployment
+#API_URL = "https://stalling-dramatize-overhead.ngrok-free.dev"  # Update with your Railway URL after deployment
+API_URL = "https://vapi-voice-agent-production-a230.up.railway.app"
 
 st.set_page_config(
     page_title="Delhi Eye Care Hospital",
