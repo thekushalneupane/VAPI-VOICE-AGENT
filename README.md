@@ -1,4 +1,4 @@
-# 👁️ Delhi Eye Care Hospital — AI Voice Agent
+# 👁️ Eye Care Hospital — AI Voice Agent
 
 An AI-powered voice assistant for Delhi Eye Care Hospital that handles appointment booking, cancellations, and patient inquiries over the phone — fully integrated with a real-time dashboard for hospital staff.
 
@@ -97,13 +97,3 @@ Vikram is configured on Vapi AI with three tools:
 
 ---
 
-## 📍 Hospital Info
-
-**Delhi Eye Care Hospital**  
-4/21 Balraj Khanna Marg, near Amrapali Hotel,  
-Patel Nagar, New Delhi – 110008
-
-**Working Hours:**  
-Mon, Tue, Thu, Fri, Sat — 9 AM to 7 PM  
-Wed — 10 AM to 8 PM  
-Sun — Closed
