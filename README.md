@@ -1,6 +1,6 @@
 # 👁️ Eye Care Hospital — AI Voice Agent
 
-An AI-powered voice assistant for Delhi Eye Care Hospital that handles appointment booking, cancellations, and patient inquiries over the phone — fully integrated with a real-time dashboard for hospital staff.
+An AI-powered voice assistant for Eye Care Hospital that handles appointment booking, cancellations, and patient inquiries over the phone — fully integrated with a real-time dashboard for hospital staff.
 
 ---
 
